@@ -1,30 +1,55 @@
 package main
 
 import (
+	"database/sql"
+	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	_ "modernc.org/sqlite"
 )
 
-func Test_SelectClient_WhenOk(t *testing.T) {
-	// настройте подключение к БД
+func getDBConnection() *sql.DB {
+	db, err := sql.Open("sqlite", "demo.db")
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	return db
+}
 
+func TestSelectClientWhenOk(t *testing.T) {
+	db := getDBConnection()
+	defer db.Close()
 	clientID := 1
+	client, err := selectClient(db, clientID)
 
-	// напиши тест здесь
+	require.Nil(t, err)
+	require.Equal(t, clientID, client.ID)
+	require.NotEmpty(t, client.FIO)
+	require.NotEmpty(t, client.Login)
+	require.NotEmpty(t, client.Birthday)
+	require.NotEmpty(t, client.Email)
 }
 
-func Test_SelectClient_WhenNoClient(t *testing.T) {
-	// настройте подключение к БД
-
+func TestSelectClientWhenNoClient(t *testing.T) {
+	db := getDBConnection()
+	defer db.Close()
 	clientID := -1
+	client, err := selectClient(db, clientID)
 
-	// напиши тест здесь
+	require.NotNil(t, err)
+	require.Equal(t, err, sql.ErrNoRows)
+	require.Empty(t, client.ID)
+	require.Empty(t, client.FIO)
+	require.Empty(t, client.Login)
+	require.Empty(t, client.Birthday)
+	require.Empty(t, client.Email)
 }
 
-func Test_InsertClient_ThenSelectAndCheck(t *testing.T) {
-	// настройте подключение к БД
-
+func TestInsertClientThenSelectAndCheck(t *testing.T) {
+	db := getDBConnection()
+	defer db.Close()
 	cl := Client{
 		FIO:      "Test",
 		Login:    "Test",
@@ -32,12 +57,19 @@ func Test_InsertClient_ThenSelectAndCheck(t *testing.T) {
 		Email:    "mail@mail.com",
 	}
 
-	// напиши тест здесь
+	id, err := insertClient(db, cl)
+	require.Nil(t, err)
+	require.NotEmpty(t, id)
+	cl.ID = id
+
+	client, err := selectClient(db, id)
+	require.Nil(t, err)
+	require.Equal(t, cl, client)
 }
 
-func Test_InsertClient_DeleteClient_ThenCheck(t *testing.T) {
-	// настройте подключение к БД
-
+func TestInsertClientDeleteClientThenCheck(t *testing.T) {
+	db := getDBConnection()
+	defer db.Close()
 	cl := Client{
 		FIO:      "Test",
 		Login:    "Test",
@@ -45,5 +77,17 @@ func Test_InsertClient_DeleteClient_ThenCheck(t *testing.T) {
 		Email:    "mail@mail.com",
 	}
 
-	// напиши тест здесь
+	id, err := insertClient(db, cl)
+	require.Nil(t, err)
+	require.NotEmpty(t, id)
+
+	_, err = selectClient(db, id)
+	require.Nil(t, err)
+
+	err = deleteClient(db, id)
+	require.Nil(t, err)
+
+	_, err = selectClient(db, id)
+	require.NotNil(t, err)
+	require.Equal(t, err, sql.ErrNoRows)
 }
