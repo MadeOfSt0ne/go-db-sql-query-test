@@ -24,7 +24,7 @@ func TestSelectClientWhenOk(t *testing.T) {
 	clientID := 1
 	client, err := selectClient(db, clientID)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, clientID, client.ID)
 	require.NotEmpty(t, client.FIO)
 	require.NotEmpty(t, client.Login)
@@ -39,7 +39,7 @@ func TestSelectClientWhenNoClient(t *testing.T) {
 	client, err := selectClient(db, clientID)
 
 	require.NotNil(t, err)
-	require.Equal(t, err, sql.ErrNoRows)
+	require.ErrorIs(t, err, sql.ErrNoRows)
 	require.Empty(t, client.ID)
 	require.Empty(t, client.FIO)
 	require.Empty(t, client.Login)
@@ -58,12 +58,12 @@ func TestInsertClientThenSelectAndCheck(t *testing.T) {
 	}
 
 	id, err := insertClient(db, cl)
-	require.Nil(t, err)
-	require.NotEmpty(t, id)
+	require.NoError(t, err)
+	require.Positive(t, id)
 	cl.ID = id
 
 	client, err := selectClient(db, id)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, cl, client)
 }
 
@@ -78,16 +78,16 @@ func TestInsertClientDeleteClientThenCheck(t *testing.T) {
 	}
 
 	id, err := insertClient(db, cl)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotEmpty(t, id)
 
 	_, err = selectClient(db, id)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = deleteClient(db, id)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	_, err = selectClient(db, id)
 	require.NotNil(t, err)
-	require.Equal(t, err, sql.ErrNoRows)
+	require.ErrorIs(t, err, sql.ErrNoRows)
 }
